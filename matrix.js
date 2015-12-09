@@ -116,6 +116,20 @@ Matrix4x4.prototype.mult = function(B) {
 }
 
 //
+// Transform homogeneous point p = [x, y, z, w]
+//
+Matrix4x4.prototype.transform = function(p) {
+    var q = [0, 0, 0, 0];
+    for (var r = 0; r < 4; r++) {
+        var s = 0;
+        for (var i = 0; i < 4; i++)
+            s += this.elem(r,i)*p[i];
+	q[r] = s;
+    }
+    return q;
+}
+
+//
 //  A <-- A*B
 //
 Matrix4x4.prototype.concat = function(B) {
@@ -198,6 +212,23 @@ Matrix4x4.prototype.lookat = function(eyex, eyey, eyez,
     return this.translate(-eyex, -eyey, -eyez);
 }
 
+Matrix4x4.prototype.inverseLookat = function(eyex, eyey, eyez,
+					     centerx, centery, centerz,
+					     upx, upy, upz) {
+    var F = [centerx - eyex, centery - eyey, centerz - eyez];
+    norm3(F);
+    var U = [upx, upy, upz];
+    var S = cross3(F,U);
+    norm3(S);
+    U = cross3(S,F);
+    var R = new Matrix4x4;
+    R.set3x3( S[0],  U[0],  -F[0],
+              S[1],  U[1],  -F[1],
+              S[2],  U[2],  -F[2]);
+    this.translate(eyex, eyey, eyez);
+    return this.concat(R);
+}
+
 //
 // Orthonormal Projection
 // M <-- M * Ortho
@@ -219,7 +250,7 @@ Matrix4x4.prototype.ortho = function(left, right,
 //
 Matrix4x4.prototype.ortho2D = function(left, right,
                                        bottom, top) {
-    return this.ortho(M, left, right, bottom, top, -1, +1);
+    return this.ortho(left, right, bottom, top, -1, +1);
 }
 
 //
@@ -298,7 +329,7 @@ Matrix4x4.prototype.shadow = function(light, plane) {
         plane[0]*light[0] + plane[1]*light[1] +
         plane[2]*light[2] + plane[3]*light[3];
     
-    var S = new Matrix4x4;
+    var S = new Matrix4x4();
     
     S.setElem(0,0,dot - light[0]*plane[0]);
     S.setElem(0,1,    - light[0]*plane[1]);
